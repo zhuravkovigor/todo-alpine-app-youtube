@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Менеджер задач</title>
+
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-zinc-100">
+    <div
+      class="relative mx-auto max-w-lg min-h-screen"
+      x-data="{ 
+        input: '', 
+        desc: '', 
+        tasks: JSON.parse(localStorage.getItem('tasks')) || [], 
+        tasksExample: ['Купить молоко', 'Купить корм для животных'],
+        expandedId: null,
+
+        expand(id) {
+          if (this.expandedId === id) {
+            this.expandedId = null;
+            return;
+          }
+
+          this.expandedId = id;
+        },
+
+        addTask() {
+          this.tasks.push({
+            name: this.input,
+            desc: this.desc,
+            done: false,
+            key: Math.random() * 100
+          });
+          this.input = '';
+          this.desc = '';
+
+          localStorage.setItem('tasks', JSON.stringify(this.tasks));
+        },
+
+        updateTask() {
+          localStorage.setItem('tasks', JSON.stringify(this.tasks));
+        },
+
+        removeTask(index) {
+          this.tasks.splice(index, 1);
+          localStorage.setItem('tasks', JSON.stringify(this.tasks));
+        }
+      }"
+    >
+      <div class="absolute bottom-12 left-0 w-full">
+        <svg
+          class="w-6 absolute top-[18px] text-zinc-400 left-4"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
+            stroke="currentColor"
+            stroke-width="2"
+          />
+          <path
+            d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+        <input
+          @keydown.enter.prevent="addTask"
+          class="bg-zinc-200 border border-zinc-300 w-full p-4 px-6 pl-14 rounded-tr-xl rounded-tl-xl outline-none"
+          :placeholder="'Например: ' + tasksExample[Math.floor(Math.random() * tasksExample.length)]"
+          type="text"
+          autofocus
+          x-model="input"
+        />
+        <textarea
+          @keydown.enter.prevent="addTask"
+          class="bg-zinc-200 border border-zinc-300 w-full p-4 pt-3 rounded-bl-xl rounded-br-xl resize-none outline-none"
+          x-model="desc"
+          placeholder="Описание задачи"
+        ></textarea>
+      </div>
+
+      <h2 class="text-3xl font-bold px-2 py-6 text-zinc-400">
+        Список задач (<span x-text="tasks.length"></span>)
+      </h2>
+
+      <template x-if="tasks.length === 0">
+        <div
+          class="absolute text-zinc-400 flex items-center flex-col top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        >
+          <svg class="w-24" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 22H15C18.866 22 22 18.866 22 15V12C22 7.28595 22 4.92893 20.5355 3.46447C19.0711 2 16.714 2 12 2C7.28595 2 4.92893 2 3.46447 3.46447C2 4.92893 2 7.28595 2 12C2 16.714 2 19.0711 3.46447 20.5355C4.92893 22 7.28595 22 12 22Z"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+            <path
+              d="M15 22C15 20.1387 15 19.2081 15.2447 18.4549C15.7393 16.9327 16.9327 15.7393 18.4549 15.2447C19.2081 15 20.1387 15 22 15"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+          </svg>
+          <h2 class="text-2xl font-bold">Задач нет</h2>
+          <p class="text-sm text-center mt-4">
+            Добавте новую задачу используя комбинацию ⌘ (Ctr) + Enter
+          </p>
+        </div>
+      </template>
+
+      <div class="flex flex-col gap-3">
+        <template :key="task.key" x-for="(task, index) in tasks">
+          <div class="relative">
+            <label
+              :class="task.done ? 'bg-green-400' : 'bg-zinc-300'"
+              class="flex absolute w-6 h-6 left-4 top-4 flex items-center cursor-pointer justify-center rounded-lg"
+            >
+              <input
+                hidden
+                type="checkbox"
+                @change="updateTask"
+                x-model="task.done"
+              />
+              <svg
+                class="w-5 h-5 text-zinc-400 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                x-show="task.done"
+              >
+                <path
+                  d="M5 13L9 17L19 7"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </label>
+
+            <input
+              :class="{ 
+                'rounded-t-xl': expandedId === task.key,
+                'rounded-xl': expandedId !== task.key,
+                'line-through' : task.done
+              }"
+              @keydown.enter.prevent="updateTask"
+              class="w-full w-full bg-zinc-200 px-14 p-4 outline-none border border-zinc-300"
+              x-model="task.name"
+            />
+            <div
+              @click="removeTask()"
+              class="absolute flex items-center justify-center w-9 h-9 hover:bg-zinc-300 rounded-lg top-2.5 right-12 text-zinc-400 cursor-pointer"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                class="w-5"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9.1709 4C9.58273 2.83481 10.694 2 12.0002 2C13.3064 2 14.4177 2.83481 14.8295 4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M20.5001 6H3.5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M18.8332 8.5L18.3732 15.3991C18.1962 18.054 18.1077 19.3815 17.2427 20.1907C16.3777 21 15.0473 21 12.3865 21H11.6132C8.95235 21 7.62195 21 6.75694 20.1907C5.89194 19.3815 5.80344 18.054 5.62644 15.3991L5.1665 8.5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M9.5 11L10 16"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M14.5 11L14 16"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <div
+              class="absolute flex items-center justify-center w-9 h-9 hover:bg-zinc-300 rounded-lg top-2.5 right-2.5 text-zinc-400 cursor-pointer"
+              @click="expand(task.key)"
+            >
+              <svg
+                class="w-5"
+                :class="{ 'rotate-180': expandedId === task.key }"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M19 9L12 15L5 9"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+
+            <textarea
+              class="w-full border border-zinc-300 bg-zinc-200 p-4 rounded-bl-xl rounded-br-xl resize-none outline-none"
+              x-show="expandedId === task.key"
+              x-model="task.desc"
+              placeholder="Описание задачи"
+              @keydown.enter.prevent="updateTask"
+            ></textarea>
+          </div>
+        </template>
+      </div>
+    </div>
+  </body>
+</html>
