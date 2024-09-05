@@ -5,143 +5,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Менеджер задач</title>
 
+    <!-- Alpine + TailwindCSS -->
     <script src="//unpkg.com/alpinejs" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-zinc-100">
+  <body>
     <div
       class="relative mx-auto max-w-lg min-h-screen"
       x-data="{
-        expandedId: null,
+      expandedId: null,
+    
+      tasks: JSON.parse(localStorage.getItem('tasks')) || [],
+      input: '',
+      desc: '',
 
-        input: '', 
-        desc: '', 
+      updateTasks() {
+        localStorage.setItem('tasks', JSON.stringify(this.tasks))
+      },
 
-        tasks: JSON.parse(localStorage.getItem('tasks')) || [], 
-        
-        tips: ['Купить молоко', 'Купить корм для животных'],
-        
+      addTask() {
+        if (!this.input) return
 
-        expand(id) {
-          if (this.expandedId === id) {
-            this.expandedId = null;
-            return;
-          }
+        this.tasks.push({
+          name: this.input,
+          desc: this.desc,
+          done: false,
+          key: Math.random(),
+        })
 
-          this.expandedId = id;
-        },
+        this.input = ''
+        this.desc = ''
 
-        addTask() {
-          if (!this.input) return
+        this.updateTasks()
+      },
 
-          this.tasks.push({
-            name: this.input,
-            desc: this.desc,
-            done: false,
-            key: Math.random(),
-          });
+      removeTask(index) {
+        this.tasks.splice(index, 1);
 
-          this.input = '';
-          this.desc = '';
+        this.updateTasks()
+      },
 
-          localStorage.setItem('tasks', JSON.stringify(this.tasks));
-        },
-
-        updateTask() {
-          localStorage.setItem('tasks', JSON.stringify(this.tasks));
-        },
-
-        removeTask(index) {
-          this.tasks.splice(index, 1);
-          localStorage.setItem('tasks', JSON.stringify(this.tasks));
-        }
-      }"
+    }"
     >
-      <form @submit.prevent="addTask" class="absolute bottom-12 left-0 w-full">
-        <img
-          class="w-6 absolute top-[17px] left-4"
-          src="./images/add-icon.svg"
-        />
-        <input
-          class="bg-zinc-200 font-medium border border-zinc-300 w-full p-4 px-6 pl-14 rounded-tr-xl rounded-tl-xl outline-none"
-          :placeholder="'Например: ' + tips[Math.floor(Math.random() * tips.length)]"
-          type="text"
-          autofocus
-          x-model="input"
-        />
-        <textarea
-          class="font-medium text-sm bg-zinc-200 border border-zinc-300 w-full p-4 pt-3 rounded-bl-xl rounded-br-xl resize-none outline-none"
-          x-model="desc"
-          placeholder="Описание задачи"
-        ></textarea>
-      </form>
-
       <h2 class="text-3xl font-bold px-2 py-6 text-zinc-400">
         Список задач (<span x-text="tasks.length"></span>)
       </h2>
 
       <template x-if="tasks.length === 0">
         <div
-          class="absolute text-zinc-400 flex items-center flex-col top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          class="absolute text-zinc-400 flex items-center flex-col top-1/2 left-1/2 -translate-x-1/2 text-center -translate-y-1/2"
         >
-          <img class="w-24 mb-2" src="./images/sticker.svg" />
+          <img src="./images/sticker.svg" class="w-24 mb-2" />
           <h2 class="text-2xl font-bold">Задач нет</h2>
-          <p class="text-sm text-center mt-4">
-            Добавте новую задачу нажав Enter
-          </p>
+          <p class="text-sm mt-4">Добавьте новую задачу нажав Enter</p>
         </div>
       </template>
 
+      <form @submit.prevent="addTask" class="absolute bottom-12 left-0 w-full">
+        <img
+          src="./images/add-icon.svg"
+          class="w-6 absolute top-[17px] left-4"
+        />
+        <input
+          autofocus
+          x-model="input"
+          type="text"
+          class="bg-zinc-200 font-medium border border-zinc-300 w-full p-4 pl-14 rounded-t-xl outline-none"
+          placeholder="Например: Купить молоко"
+        />
+        <textarea
+          @keydown.ctrl.enter="addTask"
+          x-model="desc"
+          class="bg-zinc-200 font-medium border border-zinc-300 w-full p-4 rounded-b-xl outline-none resize-none text-sm"
+          placeholder="Описание задачи"
+        ></textarea>
+      </form>
+
       <div class="flex flex-col gap-3">
-        <template x-bind:key="task.key" x-for="(task, index) in tasks">
+        <template x-for="(task, index) in tasks" x-bind:key="task.key">
           <div class="relative">
             <label
-              :class="task.done ? 'bg-green-400' : 'bg-zinc-300'"
-              class="flex absolute w-6 h-6 left-4 top-4 items-center cursor-pointer justify-center rounded-lg"
+              @change="updateTasks"
+              :class="{
+                'bg-green-400': task.done,
+                'bg-zinc-300': !task.done
+              }"
+              class="flex absolute w-6 h-6 left-4 top-4 bg-zinc-300 items-center cursor-pointer justify-center rounded-lg"
             >
-              <input
-                hidden
-                type="checkbox"
-                @change="updateTask"
-                x-model="task.done"
-              />
-              <img src="./images/check.svg" x-show="task.done" />
+              <img x-show="task.done" src="./images/check.svg" />
+              <input hidden x-model="task.done" type="checkbox" />
             </label>
 
             <input
-              :class="{ 
-                'rounded-t-xl': expandedId === task.key,
+              :class="{
                 'rounded-xl': expandedId !== task.key,
-                'line-through' : task.done
+                'rounded-t-xl': expandedId === task.key,
+                'line-through': task.done
               }"
-              @input="updateTask"
-              class="w-full font-medium bg-zinc-200 px-14 p-4 outline-none border border-zinc-300"
+              @input="updateTasks"
+              class="w-full transition-all duration-300 font-medium bg-zinc-200 px-14 p-4 outline-none border border-zinc-300 rounded-t-xl"
+              placeholder="Название задачи"
+              type="text"
               x-model="task.name"
             />
-            <div
-              @click="removeTask()"
-              class="absolute flex items-center justify-center w-9 h-9 hover:bg-zinc-300 rounded-lg top-2.5 right-12 text-zinc-400 cursor-pointer"
+
+            <button
+              class="absolute flex items-center justify-center w-9 h-9 hover:bg-zinc-300 rounded-lg top-2.5 right-2.5"
+              @click="expandedId = expandedId === task.key ? null : task.key"
+            >
+              <img class="w-5" src="./images/arrow.svg" />
+            </button>
+
+            <button
+              class="absolute flex items-center justify-center w-9 h-9 hover:bg-zinc-300 rounded-lg top-2.5 right-12"
+              @click="removeTask(index)"
             >
               <img class="w-5" src="./images/trash.svg" />
-            </div>
-            <div
-              class="absolute flex items-center justify-center w-9 h-9 hover:bg-zinc-300 rounded-lg top-2.5 right-2.5 text-zinc-400 cursor-pointer"
-              @click="expand(task.key)"
-            >
-              <img
-                src="./images/arrow.svg"
-                class="transition w-6 duration-300"
-                :class="{ 'rotate-180': expandedId === task.key }"
-              />
-            </div>
+            </button>
 
             <textarea
-              x-transition
-              class="w-full text-sm font-medium border border-zinc-300 bg-zinc-200 p-4 rounded-b-xl resize-none outline-none"
-              x-show="expandedId === task.key"
+              @input="updateTasks"
+              x-show="task.key === expandedId"
+              x-transition.duration.300ms
               x-model="task.desc"
-              placeholder="Описание задачи"
-              @input="updateTask"
+              class="bg-zinc-200 font-medium border border-zinc-300 w-full p-4 rounded-b-xl outline-none resize-none text-sm"
             ></textarea>
           </div>
         </template>
